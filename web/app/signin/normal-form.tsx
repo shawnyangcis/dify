@@ -8,6 +8,7 @@ import MailAndCodeAuth from './components/mail-and-code-auth'
 import MailAndPasswordAuth from './components/mail-and-password-auth'
 import SocialAuth from './components/social-auth'
 import SSOAuth from './components/sso-auth'
+import CustomSSOAuth from './components/custom-sso-auth'
 import cn from '@/utils/classnames'
 import { invitationCheck } from '@/service/common'
 import { LicenseStatus } from '@/types/feature'
@@ -47,8 +48,8 @@ const NormalForm = () => {
           message,
         })
       }
-      setAllMethodsAreDisabled(!systemFeatures.enable_social_oauth_login && !systemFeatures.enable_email_code_login && !systemFeatures.enable_email_password_login && !systemFeatures.sso_enforced_for_signin)
-      setShowORLine((systemFeatures.enable_social_oauth_login || systemFeatures.sso_enforced_for_signin) && (systemFeatures.enable_email_code_login || systemFeatures.enable_email_password_login))
+      setAllMethodsAreDisabled(!systemFeatures.enable_social_oauth_login && !systemFeatures.enable_email_code_login && !systemFeatures.enable_email_password_login && !systemFeatures.sso_enforced_for_signin && !systemFeatures.enable_custom_sso)
+      setShowORLine((systemFeatures.enable_social_oauth_login || systemFeatures.sso_enforced_for_signin || systemFeatures.enable_custom_sso) && (systemFeatures.enable_email_code_login || systemFeatures.enable_email_password_login))
       updateAuthType(systemFeatures.enable_email_password_login ? 'password' : 'code')
       if (isInviteLink) {
         const checkRes = await invitationCheck({
@@ -141,6 +142,7 @@ const NormalForm = () => {
             {systemFeatures.sso_enforced_for_signin && <div className='w-full'>
               <SSOAuth protocol={systemFeatures.sso_enforced_for_signin_protocol} />
             </div>}
+            {systemFeatures.enable_custom_sso && <CustomSSOAuth />}
           </div>
 
           {showORLine && <div className="relative mt-6">

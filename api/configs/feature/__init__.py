@@ -603,6 +603,47 @@ class AuthConfig(BaseSettings):
         default=None,
     )
 
+    # SSO Configuration
+    SSO_ENABLED: bool = Field(
+        description="Enable or disable custom SSO functionality",
+        default=False,
+    )
+
+    SSO_AUTH_ENDPOINT: Optional[str] = Field(
+        description="SSO Authorization endpoint URL",
+        default=None,
+    )
+
+    SSO_TOKEN_ENDPOINT: Optional[str] = Field(
+        description="SSO Token endpoint URL",  
+        default=None,
+    )
+
+    SSO_USERINFO_ENDPOINT: Optional[str] = Field(
+        description="SSO UserInfo endpoint URL",
+        default=None,
+    )
+
+    SSO_CLIENT_ID: Optional[str] = Field(
+        description="SSO OAuth client ID",
+        default=None,
+    )
+
+    SSO_CLIENT_SECRET: Optional[str] = Field(
+        description="SSO OAuth client secret",
+        default=None,
+    )
+
+    SSO_REDIRECT_URI: Optional[str] = Field(
+        description="SSO OAuth redirect/callback URI",
+        default=None,
+    )
+
+    SSO_SCOPES: str = Field(
+        description="SSO OAuth scopes (space-separated)",
+        default="",
+    )
+
     ACCESS_TOKEN_EXPIRE_MINUTES: PositiveInt = Field(
         description="Expiration time for access tokens in minutes",
         default=60,

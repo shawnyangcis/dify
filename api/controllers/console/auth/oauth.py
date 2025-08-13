@@ -14,7 +14,7 @@ from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo
+from libs.oauth import GitHubOAuth, GoogleOAuth, CustomSSOOAuth, OAuthUserInfo
 from models import Account
 from models.account import AccountStatus
 from services.account_service import AccountService, RegisterService, TenantService
@@ -44,7 +44,23 @@ def get_oauth_providers():
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
 
-        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth}
+        # Custom SSO provider
+        if (dify_config.SSO_ENABLED and dify_config.SSO_CLIENT_ID and dify_config.SSO_CLIENT_SECRET
+            and dify_config.SSO_AUTH_ENDPOINT and dify_config.SSO_TOKEN_ENDPOINT 
+            and dify_config.SSO_USERINFO_ENDPOINT and dify_config.SSO_REDIRECT_URI):
+            sso_oauth = CustomSSOOAuth(
+                client_id=dify_config.SSO_CLIENT_ID,
+                client_secret=dify_config.SSO_CLIENT_SECRET,
+                redirect_uri=dify_config.SSO_REDIRECT_URI,
+                auth_endpoint=dify_config.SSO_AUTH_ENDPOINT,
+                token_endpoint=dify_config.SSO_TOKEN_ENDPOINT,
+                userinfo_endpoint=dify_config.SSO_USERINFO_ENDPOINT,
+                scopes=dify_config.SSO_SCOPES,
+            )
+        else:
+            sso_oauth = None
+
+        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth, "sso": sso_oauth}
         return OAUTH_PROVIDERS
 
 
@@ -148,6 +164,11 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
     account = _get_account_by_openid_or_email(provider, user_info)
 
     if account:
+        # Update company information if available from SSO
+        if hasattr(user_info, 'company') and user_info.company:
+            account.company = user_info.company
+            db.session.commit()
+            
         tenants = TenantService.get_join_tenants(account)
         if not tenants:
             if not FeatureService.get_system_features().is_allow_create_workspace:
@@ -173,6 +194,11 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
         else:
             interface_language = languages[0]
         account.interface_language = interface_language
+        
+        # Set company information if available from SSO
+        if hasattr(user_info, 'company') and user_info.company:
+            account.company = user_info.company
+        
         db.session.commit()
 
     # Link account

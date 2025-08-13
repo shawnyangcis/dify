@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  mock-sso-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-sso
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    volumes:
+      - .:/app
+    networks:
+      - dify-test-network
+
+networks:
+  dify-test-network:
+    external: false

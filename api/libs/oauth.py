@@ -10,6 +10,7 @@ class OAuthUserInfo:
     id: str
     name: str
     email: str
+    company: Optional[str] = None
 
 
 class OAuth:
@@ -131,3 +132,68 @@ class GoogleOAuth(OAuth):
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
         return OAuthUserInfo(id=str(raw_info["sub"]), name="", email=raw_info["email"])
+
+
+class CustomSSOOAuth(OAuth):
+    """Custom SSO OAuth implementation for generic OAuth 2.0 providers"""
+
+    def __init__(self, client_id: str, client_secret: str, redirect_uri: str,
+                 auth_endpoint: str, token_endpoint: str, userinfo_endpoint: str,
+                 scopes: str = ""):
+        super().__init__(client_id, client_secret, redirect_uri)
+        self.auth_endpoint = auth_endpoint
+        self.token_endpoint = token_endpoint
+        self.userinfo_endpoint = userinfo_endpoint
+        self.scopes = scopes
+
+    def get_authorization_url(self, invite_token: Optional[str] = None):
+        params = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "redirect_uri": self.redirect_uri,
+        }
+        if self.scopes:
+            params["scope"] = self.scopes
+        if invite_token:
+            params["state"] = invite_token
+        return f"{self.auth_endpoint}?{urllib.parse.urlencode(params)}"
+
+    def get_access_token(self, code: str):
+        data = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": self.redirect_uri,
+        }
+        headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
+        response = requests.post(self.token_endpoint, data=data, headers=headers)
+
+        response_json = response.json()
+        access_token = response_json.get("access_token")
+
+        if not access_token:
+            raise ValueError(f"Error in Custom SSO OAuth: {response_json}")
+
+        return access_token
+
+    def get_raw_user_info(self, token: str):
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(self.userinfo_endpoint, headers=headers)
+        response.raise_for_status()
+        return response.json()
+
+    def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
+        # Extract user information based on standard OAuth 2.0 UserInfo response
+        # Support common field names and custom mappings
+        user_id = str(raw_info.get("sub", raw_info.get("id", raw_info.get("user_id", ""))))
+        name = raw_info.get("name", raw_info.get("username", raw_info.get("display_name", "")))
+        email = raw_info.get("email", "")
+        company = raw_info.get("company", raw_info.get("organization", ""))
+        
+        return OAuthUserInfo(
+            id=user_id,
+            name=name,
+            email=email,
+            company=company
+        )

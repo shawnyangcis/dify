@@ -94,6 +94,7 @@ class Account(UserMixin, Base):
     avatar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     interface_language: Mapped[Optional[str]] = mapped_column(String(255))
     interface_theme: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    company: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     timezone: Mapped[Optional[str]] = mapped_column(String(255))
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_login_ip: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
